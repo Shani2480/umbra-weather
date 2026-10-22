@@ -1,0 +1,15 @@
+{
+    "KPlugin": {
+        "Authors": [{ "Name": "Shani", "Email": "shani248@gmail.com" }],
+        "Category": "Environment and Weather",
+        "Description": "Animated weather icon with hover forecast and a detailed weekly view",
+        "Icon": "/icon.png",
+        "Id": "com.shani.umbraweather",
+        "License": "GPL-2.0+",
+        "Name": "Umbra Weather",
+        "Version": "1.0.0",
+        "Website": "https://github.com/Shani2480/umbra-weather"
+    },
+    "KPackageStructure": "Plasma/Applet",
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

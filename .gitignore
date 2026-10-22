@@ -1,0 +1,4 @@
+samples/
+dist/
+*.plasmoid
+nohup.out

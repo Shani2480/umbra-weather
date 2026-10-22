@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0 http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
+    <group name="General">
+        <entry name="latitude" type="Double">
+            <default>51.6256</default>
+        </entry>
+        <entry name="longitude" type="Double">
+            <default>4.9389</default>
+        </entry>
+        <entry name="locationName" type="String">
+            <default>Dongen</default>
+        </entry>
+        <entry name="iconStyle" type="String">
+            <default>handdrawn</default>
+        </entry>
+        <entry name="translucentDesktopBackground" type="Bool">
+            <default>true</default>
+        </entry>
+        <entry name="temperatureUnit" type="String">
+            <default>celsius</default>
+        </entry>
+        <entry name="windSpeedUnit" type="String">
+            <default>kmh</default>
+        </entry>
+        <entry name="enableBackgroundAnimations" type="Bool">
+            <default>true</default>
+        </entry>
+        <entry name="showWeatherCharacter" type="Bool">
+            <default>true</default>
+        </entry>
+        <entry name="updateIntervalMinutes" type="Int">
+            <default>15</default>
+            <min>5</min>
+            <max>180</max>
+        </entry>
+    </group>
+</kcfg>
