@@ -32,9 +32,16 @@ To update an existing install use `--upgrade` instead of `--install`.
 ## Settings
 
 Right-click the widget and choose *Configure*. Type a place name to look it
-up; the first match sets the coordinates. The icon style, units, refresh
-interval, the ambient animations and the weather character can all be
-switched there.
+up: the first match is used right away and, when there are several, you can
+pick another from the list. *Detect* takes an approximate location from your
+internet connection. The icon style, temperature and wind units, refresh
+interval, the translucent card background, the ambient animations and the
+weather character can all be switched there.
+
+On the desktop card itself, click the location name to search for a new place
+in place, and click the hero to flip the card over to a details side with
+feels-like, humidity, wind, pressure, UV index, rain chance, precipitation and
+cloud cover. Clicking a day in the 7-day row shows that day in the hero.
 
 ## How it was made
 

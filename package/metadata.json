@@ -2,7 +2,7 @@
     "KPlugin": {
         "Authors": [{ "Name": "Shani", "Email": "shani248@gmail.com" }],
         "Category": "Environment and Weather",
-        "Description": "Animated weather icon with hover forecast and a detailed weekly view",
+        "Description": "Animated weather icon with a hover forecast and a resizable desktop card, from a weekly view with ambient animations down to a miniature tile",
         "Icon": "/icon.png",
         "Id": "com.shani.umbraweather",
         "License": "GPL-2.0+",
