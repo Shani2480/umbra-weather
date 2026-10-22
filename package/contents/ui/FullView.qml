@@ -30,6 +30,10 @@ Rectangle {
     property bool translucent: true
     property bool ambientAnimations: true   // subtle weather animation behind the hero text
     property bool showCharacter: true       // silhouette figure on the hourly strip (needs ambientAnimations)
+    // The card is dark in every mode, so the black Weather Underground sets
+    // (meant for light panels) are drawn with their white twins here.
+    readonly property string cardIconStyle: iconStyle === "black" ? "white"
+        : iconStyle === "solid-black" ? "solid-white" : iconStyle
 
     signal refreshRequested()
     signal closeRequested()
@@ -163,6 +167,10 @@ Rectangle {
     // Miniature view: a single hero card once the desktop widget is resized to
     // a small footprint. The popup is content-sized and never qualifies.
     readonly property bool isMiniMode: desktopMode && (width < 340 || height < 260)
+    // The desktop card has three tiers: miniature (hero only), mid (hero and
+    // the weekly row, hourly strip collapsed) and full (everything).
+    readonly property bool isMidMode: desktopMode && !isMiniMode && !showTrack
+    readonly property bool isFullMode: desktopMode && !isMiniMode && showTrack
     readonly property bool showSolarCards: !isMiniMode && width >= 400
     readonly property int miniMinWidth: 200
     readonly property int miniMinHeight: 130
@@ -212,7 +220,7 @@ Rectangle {
     readonly property var heroStops: Weather.heroPalette(heroCondition, selToday ? solarPhase : "day")
     readonly property bool selToday: selectedIndex === 0
     readonly property var heroSlots: !weather || !sel ? []
-        : selToday ? Weather.upcomingSlots(weather, 6, 3)
+        : selToday ? Weather.upcomingSlots(weather, 6, 3, tick)      // follows the clock, so the strip advances between refreshes
                    : Weather.daySlots(weather, sel.date, [6, 9, 12, 15, 18, 21])
 
     // palette
@@ -236,7 +244,22 @@ Rectangle {
         pendingIndex = i
         heroSwap.restart()
     }
-    onWeatherChanged: if (!weather || selectedIndex >= weather.daily.length) selectedIndex = 0
+    onWeatherChanged: {
+        if (!weather || selectedIndex >= weather.daily.length) selectedIndex = 0
+        if (weather && hadWeather) figure.triggerRoam()                 // fresh data: the pair wanders off to a new spot
+        hadWeather = !!weather
+    }
+    property bool hadWeather: false
+
+    // The pair also strolls whenever today's strip drops its first slot.
+    // Day selection does not count: the value only changes between two
+    // live slots of today.
+    readonly property real firstSlotTime: selToday && heroSlots.length > 0 ? heroSlots[0].time.getTime() : 0
+    property real lastSlotTime: 0
+    onFirstSlotTimeChanged: {
+        if (firstSlotTime > 0 && lastSlotTime > 0 && firstSlotTime !== lastSlotTime) figure.triggerRoam()
+        lastSlotTime = firstSlotTime
+    }
 
     Timer {   // keeps the solar phase current while the view is showing
         interval: 60 * 1000
@@ -443,6 +466,38 @@ Rectangle {
         }
     }
 
+    // Silhouette pair roaming the desktop card. It is an overlay above every
+    // section, so no collapsing row clips it: in the full tier its feet rest on
+    // the hourly strip's top edge, in the mid and miniature tiers on the hero
+    // card's bottom border. The position follows the strip as it collapses,
+    // so switching tiers never makes the pair jump. It starts in the gap
+    // between the temperature text and the solar cards.
+    WeatherCharacter {
+        id: figure
+        z: 10
+        readonly property real restOpacity: 0.32
+        readonly property real heroX: column.x + hero.x
+        readonly property real heroY: column.y + hero.y
+        readonly property real edgeY: heroY + hero.height - 1 - ground                               // feet on the hero's bottom border
+        readonly property real stripY: heroY + hero.hpad + hourlyWell.y + view.heroShift - ground    // feet on the strip's top edge
+        visible: view.showCharacter && view.ambientAnimations
+        // only the desktop card shows the pair, and only its front side
+        opacity: view.desktopMode && hero.visible && view.flipAngle < 90 ? restOpacity : 0
+        y: edgeY + (stripY - edgeY) * view.hourlyVisibility
+        minTrackX: heroX + 16
+        maxTrackX: Math.max(heroX + 20, heroX + hero.width - width - 16)
+        homeX: view.isFullMode ? heroX + hero.hpad + metricsRow.x + descColumn.x + descColumn.width / 2 - width / 2
+             : heroX + (hero.width - width) / 2
+        condition: ambient.condition
+        isNight: ambient.isNight
+        windSpeed: ambient.windSpeed
+        running: ambient.running && visible && opacity > 0
+        Connections {
+            target: ambient
+            function onLightning() { figure.duck() }
+        }
+    }
+
     ColumnLayout {
         id: column
         visible: view.flipAngle < 90
@@ -467,7 +522,7 @@ Rectangle {
                 condition: view.weather ? view.weather.current.condition : "cloudy"
                 code: view.weather ? view.weather.current.code : -1
                 isDay: view.weather ? view.weather.current.isDay : true
-                iconStyle: view.iconStyle
+                iconStyle: view.cardIconStyle
                 running: view.active
             }
             HeaderButton {
@@ -644,7 +699,7 @@ Rectangle {
                         condition: !view.sel ? "cloudy" : view.selToday ? view.weather.current.condition : view.sel.condition
                         code: !view.sel ? -1 : view.selToday ? view.weather.current.code : view.sel.code
                         isDay: !view.sel || !view.selToday ? true : view.weather.current.isDay
-                        iconStyle: view.iconStyle
+                        iconStyle: view.cardIconStyle
                         running: view.active
                     }
                     ShadowLabel {
@@ -740,27 +795,7 @@ Rectangle {
                     radius: 8
                     color: Qt.rgba(0, 0, 0, 0.18)
 
-                    // Silhouette figure resting on the strip's top edge, in the
-                    // gap between the temperature text and the solar cards.
-                    WeatherCharacter {
-                        id: figure
-                        z: 1
-                        visible: view.showCharacter && view.ambientAnimations
-                        anchors.bottom: parent.top
-                        anchors.bottomMargin: -8                          // seated legs dangle over the edge
-                        x: Math.max(0, Math.min(parent.width - width,
-                               metricsRow.x + descColumn.x + descColumn.width / 2 - width / 2))
-                        condition: ambient.condition
-                        isNight: ambient.isNight
-                        windSpeed: ambient.windSpeed
-                        running: ambient.running && visible
-                        Connections {
-                            target: ambient
-                            function onLightning() { figure.duck() }
-                        }
-                    }
-
-                    Item {   // clips the strip while it collapses; the figure above stays outside
+                    Item {   // clips the strip while it collapses
                         anchors.fill: parent
                         clip: true
                         RowLayout {
@@ -790,7 +825,7 @@ Rectangle {
                                         Layout.alignment: Qt.AlignHCenter
                                         condition: hs.modelData.condition
                                         code: hs.modelData.code
-                                        iconStyle: view.iconStyle
+                                        iconStyle: view.cardIconStyle
                                         isDay: hs.modelData.isDay
                                     }
                                     PlasmaComponents3.Label {
@@ -830,7 +865,7 @@ Rectangle {
                     condition: view.cur ? view.cur.condition : "cloudy"
                     code: view.cur ? view.cur.code : -1
                     isDay: view.cur ? view.cur.isDay : true
-                    iconStyle: view.iconStyle
+                    iconStyle: view.cardIconStyle
                     running: view.active
                 }
                 ColumnLayout {
@@ -968,7 +1003,7 @@ Rectangle {
                                 Layout.alignment: Qt.AlignHCenter
                                 condition: cell.modelData.condition
                                 code: cell.modelData.code
-                                iconStyle: view.iconStyle
+                                iconStyle: view.cardIconStyle
                             }
                             RowLayout {
                                 spacing: 0

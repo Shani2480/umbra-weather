@@ -12,7 +12,7 @@ with ambient weather animations down to a compact tile.
 - Resizable desktop card: the hourly strip, sunrise/sunset cards and 7-day row
   fold away smoothly as it shrinks, and below 340x260 it becomes a miniature
   tile with the icon, temperature, condition and feels-like temperature
-- A small silhouette duo, a person and their dog, that react to the weather on the hourly strip
+- A small silhouette duo, a person and their dog, that react to the weather and wander along the hourly strip (or the bottom of the miniature tile)
 - Three icon styles: volumetric glass, hand-drawn animated, and the Weather Underground sets
 - Metric or imperial units, configurable refresh interval
 

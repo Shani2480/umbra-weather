@@ -23,9 +23,10 @@ Item {
     readonly property bool handDrawn: iconStyle === "handdrawn"
     readonly property bool glass: iconStyle === "glass3d"
     readonly property string svgName: Weather.wuIcon(code, isDay, condition)
+    // The whole image is never rotated: a spinning sun would also spin the
+    // cloud beside it, and a stopped spin left later icons frozen sideways.
     readonly property string svgMotion: svgName.indexOf("tstorms") >= 0 ? "flash"
-        : (svgName === "sunny" || svgName === "mostlysunny") ? "spin"
-        : (svgName === "nt_clear" || svgName === "nt_mostlysunny") ? "glow"
+        : /^(nt_)?(sunny|clear|mostlysunny)$/.test(svgName) ? "glow"
         : /rain|sleet|snow|flurries/.test(svgName) ? "fall" : "drift"
     property real motionX: 0
     property real motionY: 0
@@ -632,12 +633,7 @@ Item {
             sourceSize: Qt.size(icon.s * 2, icon.s * 2)
             fillMode: Image.PreserveAspectFit
             smooth: true
-
-            RotationAnimator on rotation {
-                from: 0; to: 360; duration: 20000
-                loops: Animation.Infinite
-                running: icon.running && icon.svgMotion === "spin" && svgArt.visible
-            }
+            rotation: 0            // always upright, see svgMotion
         }
 
         // drift: gentle sway + bob (clouds, fog)
@@ -672,7 +668,7 @@ Item {
         }
         // glow: moon / sun pulse
         SequentialAnimation {
-            running: icon.running && (icon.svgMotion === "glow" || icon.svgMotion === "spin") && svgArt.visible
+            running: icon.running && icon.svgMotion === "glow" && svgArt.visible
             loops: Animation.Infinite
             NumberAnimation { target: svgArt; property: "scale"; to: 1.08; duration: 1000; easing.type: Easing.InOutSine }
             NumberAnimation { target: svgArt; property: "scale"; to: 1.0; duration: 1000; easing.type: Easing.InOutSine }

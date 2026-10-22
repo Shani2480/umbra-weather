@@ -95,7 +95,8 @@ function isDaytime(daily, t) {
 }
 
 // The next `count` hourly entries that fall on a multiple of `stepHours`,
-// starting with the slot that contains the current time.
+// starting with the slot that contains the current time (`machineNow`, or
+// the real clock).
 // All timestamps from the API are the location's wall-clock time, parsed as if
 // they were local to this machine. This returns "now" on the same footing: a
 // Date whose machine-local wall-clock reads what a clock at the location reads.
@@ -106,8 +107,8 @@ function localNow(data, machineNow) {
     return new Date(t + (data.utcOffsetSeconds - machineOffsetSeconds) * 1000)
 }
 
-function upcomingSlots(data, count, stepHours) {
-    var now = localNow(data).getTime()
+function upcomingSlots(data, count, stepHours, machineNow) {
+    var now = localNow(data, machineNow).getTime()
     var out = []
     for (var i = 0; i < data.hourly.length && out.length < count; i++) {
         var h = data.hourly[i]
