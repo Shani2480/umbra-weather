@@ -16,6 +16,18 @@ with ambient weather animations down to a compact tile.
 - Three icon styles: volumetric glass, hand-drawn animated, and the Weather Underground sets
 - Metric or imperial units, configurable refresh interval
 
+## Screenshots
+
+| | |
+| --- | --- |
+| ![Clear day](screenshots/1-sunny.png) | ![Rain](screenshots/2-rain.png) |
+| ![Storm](screenshots/3-storm.png) | ![Thunderstorm](screenshots/4-thunder.png) |
+| ![Windy](screenshots/5-windy.png) | ![Night](screenshots/6-night.png) |
+
+![Miniature view](screenshots/9-miniature.png)
+
+![Panel item](screenshots/7-panel.png) ![Hover popup](screenshots/8-popup.png)
+
 ## Install
 
 From the KDE Store: right-click the panel or desktop, choose *Add Widgets*, then
