@@ -1,15 +1,17 @@
 # Umbra Weather
 
 A weather widget for KDE Plasma 6 with an animated condition icon in the panel,
-a hover forecast, and a detailed desktop card with a weekly view.
+a hover forecast, and a resizable desktop card that goes from a full weekly view
+with ambient weather animations down to a compact tile.
 
 - Current conditions and a 7-day forecast from [Open-Meteo](https://open-meteo.com/), no API key needed
 - Panel item with an animated icon that plays on hover, on a condition change, and every few minutes
 - Hover popup with the next hours and today's details
 - Desktop card with sunrise and sunset, an hourly strip, and ambient weather animations
   (wind-driven rain, flowing wind ribbons, drifting clouds, snow, lightning)
-- Miniature view: shrink the desktop card below 340x260 and it becomes a compact
-  tile with the icon, temperature, condition and feels-like
+- Resizable desktop card: the hourly strip, sunrise/sunset cards and 7-day row
+  fold away smoothly as it shrinks, and below 340x260 it becomes a miniature
+  tile with the icon, temperature, condition and feels-like temperature
 - A small silhouette duo, a person and their dog, that react to the weather on the hourly strip
 - Three icon styles: volumetric glass, hand-drawn animated, and the Weather Underground sets
 - Metric or imperial units, configurable refresh interval
@@ -33,6 +35,15 @@ Right-click the widget and choose *Configure*. Type a place name to look it
 up; the first match sets the coordinates. The icon style, units, refresh
 interval, the ambient animations and the weather character can all be
 switched there.
+
+## How it was made
+
+Umbra Weather is vibe coded. The QML and JavaScript were written with
+[Claude Code](https://claude.com/claude-code), Anthropic's AI coding agent, in
+conversation with Shani, who chose the design, directed each feature, tested
+every build on a real Plasma desktop and decided what shipped. Commits carry a
+Claude co-author line so the AI's part in the code stays visible. If you find
+a bug, please open an issue; a human reads and answers them.
 
 ## Credits
 
