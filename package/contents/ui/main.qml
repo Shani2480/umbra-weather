@@ -25,6 +25,9 @@ PlasmoidItem {
                                    || Plasmoid.formFactor === PlasmaCore.Types.Planar
                                    || Plasmoid.formFactor === PlasmaCore.Types.MediaCenter
     readonly property string tempText: hasData ? Math.round(weather.current.temp) + "°" : "--°"
+    // Current observation as rounded integers, in the configured unit.
+    readonly property int currentTemp: hasData ? Math.round(weather.current.temp) : 0
+    readonly property int currentFeelsLike: hasData ? Math.round(weather.current.feelsLike) : 0
 
     preferredRepresentation: onDesktop ? fullRepresentation : compactRepresentation
     // Both popups draw their own glass surfaces (FullView, HoverForecast).
@@ -109,6 +112,7 @@ PlasmoidItem {
     fullRepresentation: FullView {
         weather: root.weather
         errorText: root.errorText
+        currentFeelsLike: root.currentFeelsLike
         locationName: Plasmoid.configuration.locationName.trim()
         iconStyle: Plasmoid.configuration.iconStyle
         desktopMode: root.onDesktop

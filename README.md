@@ -8,6 +8,8 @@ a hover forecast, and a detailed desktop card with a weekly view.
 - Hover popup with the next hours and today's details
 - Desktop card with sunrise and sunset, an hourly strip, and ambient weather animations
   (wind-driven rain, flowing wind ribbons, drifting clouds, snow, lightning)
+- Miniature view: shrink the desktop card below 340x260 and it becomes a compact
+  tile with the icon, temperature, condition and feels-like
 - A small silhouette duo, a person and their dog, that react to the weather on the hourly strip
 - Three icon styles: volumetric glass, hand-drawn animated, and the Weather Underground sets
 - Metric or imperial units, configurable refresh interval

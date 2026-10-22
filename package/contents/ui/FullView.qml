@@ -13,11 +13,14 @@ import "code/weather.js" as Weather
 // days, and the hero gains its solar cards and then its hourly strip only when
 // the height can hold them. Every row keeps its minimum height, so the hero
 // and the 7-day row are always sequential, never squeezed into each other.
+// Shrunk below 340x260 the card switches to the miniature view: the hero alone,
+// with the icon, temperature, condition and feels-like scaled to the footprint.
 Rectangle {
     id: view
 
     property var weather: null
     property string errorText: ""
+    property int currentFeelsLike: 0        // rounded, in the configured unit (see main.qml)
     property string locationName: ""
     property string iconStyle: "handdrawn"
     property bool active: false
@@ -157,6 +160,30 @@ Rectangle {
     property real heroShift: 0          // vertical offset of the hero contents during a day swap
 
     readonly property bool narrow: desktopMode && width < 420
+    // Miniature view: a single hero card once the desktop widget is resized to
+    // a small footprint. The popup is content-sized and never qualifies.
+    readonly property bool isMiniMode: desktopMode && (width < 340 || height < 260)
+    readonly property bool showSolarCards: !isMiniMode && width >= 400
+    readonly property int miniMinWidth: 200
+    readonly property int miniMinHeight: 130
+    onIsMiniModeChanged: if (isMiniMode) { flipped = false; searching = false; selectedIndex = 0; pendingIndex = 0 }
+
+    // Breakpoint transitions. Sections never snap in and out: each one follows
+    // a 0..1 progress that drives its layout size and opacity.
+    property real miniProgress: isMiniMode ? 1.0 : 0.0          // regular rows -> miniature tile
+    Behavior on miniProgress { NumberAnimation { duration: 240; easing.type: Easing.OutCubic } }
+    property real hourlyVisibility: showTrack ? 1.0 : 0.0
+    Behavior on hourlyVisibility { NumberAnimation { duration: 240; easing.type: Easing.OutCubic } }
+    property real weeklyVisibility: isMiniMode ? 0.0 : 1.0
+    Behavior on weeklyVisibility { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
+    property real solarVisibility: showSolar ? 1.0 : 0.0
+    Behavior on solarVisibility { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+    // Hero height floor, eased between the tiers and the miniature tile but
+    // never above what fits beside the (collapsing) 7-day row.
+    property real heroMinHeight: isMiniMode ? 56 : Math.ceil(heroNeed)
+    Behavior on heroMinHeight { enabled: view.desktopMode; NumberAnimation { duration: 240; easing.type: Easing.OutCubic } }
+    readonly property real heroRoom: height - chrome - gridMin * weeklyVisibility
+    readonly property real heroFloor: desktopMode ? Math.max(56, Math.min(heroMinHeight, heroRoom)) : heroMinHeight
 
     // Vertical budget (desktop). Each hero tier needs this much height; the
     // 7-day row may shrink from gridPref to gridMin before a tier is dropped.
@@ -170,8 +197,8 @@ Rectangle {
     readonly property real heroSolar: detailsExtra + hpad * 2 + titleLabel.implicitHeight + heroContent.spacing
                                     + Math.max(metricsRow.implicitHeight, solarColumn.implicitHeight)
     readonly property real heroTrack: Math.max(210, heroSolar + heroContent.spacing + hourlyWell.implicitHeight)
-    readonly property bool showSolar: !desktopMode || height >= heroSolar + gridMin + chrome
-    readonly property bool showTrack: desktopMode && heroSlots.length > 0 && height >= heroTrack + gridMin + chrome
+    readonly property bool showSolar: !desktopMode || (showSolarCards && height >= heroSolar + gridMin + chrome)
+    readonly property bool showTrack: desktopMode && !isMiniMode && heroSlots.length > 0 && height >= heroTrack + gridMin + chrome
     readonly property real heroNeed: showTrack ? heroTrack : showSolar ? heroSolar : heroCompact
     readonly property var days: weather ? weather.daily.slice(0, narrow ? 4 : 7) : []
     readonly property var sel: weather && selectedIndex < weather.daily.length ? weather.daily[selectedIndex] : null
@@ -239,8 +266,8 @@ Rectangle {
     implicitHeight: desktopMode ? 260 : column.implicitHeight + pad * 2
     Layout.preferredWidth: implicitWidth
     Layout.preferredHeight: implicitHeight
-    Layout.minimumWidth: desktopMode ? 340 : implicitWidth
-    Layout.minimumHeight: desktopMode ? Math.ceil(heroCompact + gridMin + chrome) : implicitHeight
+    Layout.minimumWidth: desktopMode ? miniMinWidth : implicitWidth
+    Layout.minimumHeight: desktopMode ? miniMinHeight : implicitHeight
 
     radius: 12
     color: !desktopMode ? Qt.rgba(0x16 / 255, 0x19 / 255, 0x1E / 255, 0.85)
@@ -515,8 +542,8 @@ Rectangle {
             z: 3
             Layout.fillWidth: true
             Layout.fillHeight: view.desktopMode
-            Layout.preferredHeight: Math.ceil(view.heroNeed)
-            Layout.minimumHeight: Math.ceil(view.heroNeed)
+            Layout.preferredHeight: view.heroFloor
+            Layout.minimumHeight: view.heroFloor
             radius: 10
             clip: true
             border.width: 1
@@ -554,8 +581,8 @@ Rectangle {
                 id: heroMouse
                 anchors.fill: parent
                 hoverEnabled: view.desktopMode
-                acceptedButtons: view.desktopMode ? Qt.LeftButton : Qt.NoButton
-                cursorShape: view.desktopMode ? Qt.PointingHandCursor : Qt.ArrowCursor
+                acceptedButtons: view.desktopMode && !view.isMiniMode ? Qt.LeftButton : Qt.NoButton
+                cursorShape: acceptedButtons !== Qt.NoButton ? Qt.PointingHandCursor : Qt.ArrowCursor
                 onClicked: view.flipped = true
             }
 
@@ -578,7 +605,8 @@ Rectangle {
                 }
                 ShadowLabel {
                     id: titleLabel
-                    visible: !view.searching
+                    visible: !view.searching && view.miniProgress < 1
+                    opacity: 1 - view.miniProgress
                     Layout.minimumHeight: implicitHeight
                     MouseArea {
                         anchors.fill: parent
@@ -601,6 +629,8 @@ Rectangle {
                 // middle row: metrics on the left, solar cards on the right
                 RowLayout {
                     id: metricsRow
+                    visible: view.miniProgress < 1
+                    opacity: 1 - view.miniProgress
                     spacing: 12
                     Layout.fillWidth: true
                     Layout.fillHeight: true
@@ -647,9 +677,14 @@ Rectangle {
 
                     ColumnLayout {
                         id: solarColumn
-                        visible: view.showSolar
+                        visible: view.solarVisibility > 0
+                        opacity: view.solarVisibility
+                        clip: view.solarVisibility < 1
                         spacing: 6
                         Layout.alignment: Qt.AlignVCenter
+                        Layout.minimumWidth: 0
+                        Layout.preferredWidth: implicitWidth * view.solarVisibility
+                        Layout.maximumWidth: implicitWidth * view.solarVisibility
                         SolarCard {
                             label: i18n("Sunrise")
                             time: view.sel ? view.sel.sunrise : new Date()
@@ -695,9 +730,12 @@ Rectangle {
 
                 Rectangle {
                     id: hourlyWell
-                    visible: view.showTrack
+                    visible: view.hourlyVisibility > 0
+                    opacity: view.hourlyVisibility
                     Layout.fillWidth: true
-                    Layout.minimumHeight: implicitHeight
+                    Layout.minimumHeight: implicitHeight * view.hourlyVisibility
+                    Layout.preferredHeight: implicitHeight * view.hourlyVisibility
+                    Layout.maximumHeight: implicitHeight * view.hourlyVisibility
                     implicitHeight: track.implicitHeight + 12
                     radius: 8
                     color: Qt.rgba(0, 0, 0, 0.18)
@@ -722,45 +760,122 @@ Rectangle {
                         }
                     }
 
-                    RowLayout {
-                        id: track
+                    Item {   // clips the strip while it collapses; the figure above stays outside
                         anchors.fill: parent
-                        anchors.margins: 6
-                        spacing: 0
-                        Repeater {
-                            model: view.heroSlots
-                            ColumnLayout {
-                                id: hs
-                                required property var modelData
-                                spacing: 1
-                                Layout.fillWidth: true
-                                Layout.preferredWidth: 1
-                                PlasmaComponents3.Label {
-                                    text: Qt.formatTime(hs.modelData.time, "HH:mm")
-                                    color: "#E0E0E0"
-                                    font.pixelSize: 10
-                                    font.features: { "tnum": 1 }
-                                    horizontalAlignment: Text.AlignHCenter
+                        clip: true
+                        RowLayout {
+                            id: track
+                            x: 6; y: 6
+                            width: parent.width - 12
+                            spacing: 0
+                            Repeater {
+                                model: view.heroSlots
+                                ColumnLayout {
+                                    id: hs
+                                    required property var modelData
+                                    spacing: 1
                                     Layout.fillWidth: true
-                                }
-                                WeatherIcon {
-                                    Layout.preferredWidth: 18
-                                    Layout.preferredHeight: 18
-                                    Layout.alignment: Qt.AlignHCenter
-                                    condition: hs.modelData.condition
-                                    code: hs.modelData.code
-                                    iconStyle: view.iconStyle
-                                    isDay: hs.modelData.isDay
-                                }
-                                PlasmaComponents3.Label {
-                                    text: Math.round(hs.modelData.temp) + "°"
-                                    color: view.primary
-                                    font.pixelSize: 11
-                                    horizontalAlignment: Text.AlignHCenter
-                                    Layout.fillWidth: true
+                                    Layout.preferredWidth: 1
+                                    PlasmaComponents3.Label {
+                                        text: Qt.formatTime(hs.modelData.time, "HH:mm")
+                                        color: "#E0E0E0"
+                                        font.pixelSize: 10
+                                        font.features: { "tnum": 1 }
+                                        horizontalAlignment: Text.AlignHCenter
+                                        Layout.fillWidth: true
+                                    }
+                                    WeatherIcon {
+                                        Layout.preferredWidth: 18
+                                        Layout.preferredHeight: 18
+                                        Layout.alignment: Qt.AlignHCenter
+                                        condition: hs.modelData.condition
+                                        code: hs.modelData.code
+                                        iconStyle: view.iconStyle
+                                        isDay: hs.modelData.isDay
+                                    }
+                                    PlasmaComponents3.Label {
+                                        text: Math.round(hs.modelData.temp) + "°"
+                                        color: view.primary
+                                        font.pixelSize: 11
+                                        horizontalAlignment: Text.AlignHCenter
+                                        Layout.fillWidth: true
+                                    }
                                 }
                             }
                         }
+                    }
+                }
+            }
+
+            // Miniature view: icon beside the temperature, condition and
+            // feels-like, crossfaded over the regular rows. Lines are added
+            // as the card grows taller.
+            RowLayout {
+                id: miniContent
+                visible: view.miniProgress > 0
+                opacity: view.miniProgress
+                z: 2
+                anchors.fill: parent
+                anchors.margins: hero.hpad
+                spacing: 8
+                readonly property real iconSize: Math.max(28, Math.min(64, hero.height * 0.55, hero.width * 0.3))
+                readonly property real tempSize: Math.max(22, Math.min(40, hero.height * 0.28))
+                readonly property bool showFeels: hero.height >= 96
+                readonly property bool showLocation: hero.height >= 124 && view.locationName !== ""
+
+                WeatherIcon {
+                    Layout.preferredWidth: miniContent.iconSize
+                    Layout.preferredHeight: miniContent.iconSize
+                    Layout.alignment: Qt.AlignVCenter
+                    condition: view.cur ? view.cur.condition : "cloudy"
+                    code: view.cur ? view.cur.code : -1
+                    isDay: view.cur ? view.cur.isDay : true
+                    iconStyle: view.iconStyle
+                    running: view.active
+                }
+                ColumnLayout {
+                    spacing: 0
+                    Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignVCenter
+                    ShadowLabel {   // location, click to change
+                        visible: miniContent.showLocation && !view.searching
+                        text: view.locationName
+                        color: "#E0E0E0"
+                        font.pixelSize: 10
+                        font.weight: Font.DemiBold
+                        font.capitalization: Font.AllUppercase
+                        font.letterSpacing: 0.6
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
+                        Layout.rightMargin: 28   // room for the hover refresh button
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: view.openSearch()
+                        }
+                    }
+                    ShadowLabel {
+                        text: view.cur ? Math.round(view.cur.temp) + "°" : "--°"
+                        color: view.primary
+                        font.pixelSize: miniContent.tempSize
+                        font.bold: true
+                        Layout.leftMargin: -2
+                    }
+                    ShadowLabel {
+                        text: view.cur ? view.cur.text : ""
+                        color: view.primary
+                        font.pixelSize: 12
+                        font.weight: Font.DemiBold
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
+                    }
+                    ShadowLabel {
+                        visible: miniContent.showFeels
+                        text: i18n("Feels like %1°", view.currentFeelsLike)
+                        color: "#E0E0E0"
+                        font.pixelSize: 11
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
                     }
                 }
             }
@@ -781,10 +896,13 @@ Rectangle {
         // ---- forecast grid: 7 days, or 4 when the desktop widget is narrow ----
         RowLayout {
             id: grid
-            visible: !!view.weather && !view.forecastCollapsed
+            visible: !!view.weather && !view.forecastCollapsed && view.weeklyVisibility > 0
+            opacity: view.weeklyVisibility
+            clip: view.weeklyVisibility < 1
             Layout.fillWidth: true
-            Layout.preferredHeight: view.gridPref
-            Layout.minimumHeight: view.gridMin
+            Layout.preferredHeight: view.gridPref * view.weeklyVisibility
+            Layout.minimumHeight: view.gridMin * view.weeklyVisibility
+            Layout.maximumHeight: view.weeklyVisibility < 1 ? view.gridPref * view.weeklyVisibility : Number.POSITIVE_INFINITY
             spacing: 6
 
             Repeater {
