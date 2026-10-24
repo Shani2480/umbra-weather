@@ -15,7 +15,14 @@ with ambient weather animations down to a compact tile.
 - A small silhouette duo, a person and their dog, that react to the weather and
   roam the card: every so often, and whenever the forecast updates, they stroll
   a little way along the hourly strip (or the card's bottom edge in the smaller
-  layouts), the dog trotting ahead, and settle back into their weather pose
+  layouts), the dog trotting ahead on a slack leash, and settle back into
+  their weather pose. Both are articulated skeletons, so knees, elbows,
+  paws and the dog's spine and tail move the way they should, and turning
+  round is a real turn rather than a flip.
+  Hover them and the dog perks up while the person waves; click to toss the
+  dog a treat. Left alone they shake off the rain, stretch, sniff along the
+  ground or chase a butterfly, and the temperature adds a steaming mug, a
+  campfire, a rain puddle, and a lantern or telescope on clear nights
 - Three icon styles: volumetric glass, hand-drawn animated, and the Weather Underground sets
 - Metric or imperial units, configurable refresh interval
 

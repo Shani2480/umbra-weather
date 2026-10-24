@@ -491,6 +491,8 @@ Rectangle {
         condition: ambient.condition
         isNight: ambient.isNight
         windSpeed: ambient.windSpeed
+        // today's live temperature, or the selected day's high
+        temperature: !view.weather || !view.sel ? 15 : view.selToday ? view.weather.current.temp : view.sel.max
         running: ambient.running && visible && opacity > 0
         Connections {
             target: ambient
